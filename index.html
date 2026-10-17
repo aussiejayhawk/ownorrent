@@ -61,6 +61,7 @@ svg text{fill:var(--mut);font-size:11px}
 <div class="card"><h2>Versus renting</h2><div class="grid">
 <div><label>Rent ($)</label><div class="row"><input id="rent" type="number" value="650" min="0"><select id="rentf"><option value="52" selected>weekly</option><option value="26">fortnightly</option><option value="12">monthly</option></select></div></div>
 <div><label>Investment return (% p.a.)</label><input id="iv" type="number" value="7" step="0.1"></div>
+<div><label>Rent increase (% p.a., yearly step)</label><input id="ri" type="number" value="3" step="0.1"></div>
 <div><label>&nbsp;</label><label style="display:flex;gap:8px;align-items:center;color:var(--tx)"><input id="eqin" type="checkbox" style="width:auto">Also invest current equity</label></div>
 </div></div>
 
@@ -74,7 +75,7 @@ svg text{fill:var(--mut);font-size:11px}
 <div id="out"></div>
 <div class="card"><h2>Versus renting: invest the difference</h2><div class="stats" id="rstats"></div></div>
 <div id="rout"></div>
-<p class="note">Holding costs = interest + council rates + body corporate. Principal repaid is equity, not a cost. Growth is compounded annually; rates and fees held flat. Renting: each month, owning cash out (repayment + council + body corp) minus rent is invested at your return rate, compounded monthly. If rent is higher, the pot draws down. Investment returns are pre-tax. Inputs are saved in this browser only (localStorage), never sent anywhere. Estimate only, not financial advice.</p>
+<p class="note">Holding costs = interest + council rates + body corporate. Principal repaid is equity, not a cost. Growth is compounded annually; council and body corporate held flat; rent rises once a year. Renting: each month, owning cash out (repayment + council + body corp) minus rent is invested at your return rate, compounded monthly. If rent is higher, the pot draws down. Investment returns are pre-tax. Inputs are saved in this browser only (localStorage), never sent anywhere. Estimate only, not financial advice.</p>
 </main>
 <script>
 const $=id=>document.getElementById(id);
@@ -88,15 +89,15 @@ function calc(){
   const V=+$('val').value||0, g=(+$('gr').value||0)/100;
   const cm=(+$('cr').value||0)*(+$('crf').value)/12, bm=(+$('bc').value||0)*(+$('bcf').value)/12;
   const hz=+$('hz').value, N=hz*12, step=hz===1?1:12;
-  const rm=(+$('rent').value||0)*(+$('rentf').value)/12, ir=(+$('iv').value||0)/100/12;
-  let bal=owed,ci=0,cc=0,cb=0,cp=0,rp=0,inv=$('eqin').checked?Math.max(0,V-owed):0; const inv0=inv;
-  const rows=[{p:0,label:'Start',val:V,bal:owed,eq:V-owed,int:0,cou:0,bc:0,cost:0,gain:0,net:0,paid:0,inv:inv0,rentPaid:0,diff:V-owed-inv0}];
+  const rm0=(+$('rent').value||0)*(+$('rentf').value)/12, ir=(+$('iv').value||0)/100/12, rig=(+$('ri').value||0)/100;
+  let bal=owed,ci=0,cc=0,cb=0,cp=0,rp=0,inv=$('eqin').checked?Math.max(0,V-owed):0; const inv0=inv; let cap=inv0;
+  const rows=[{p:0,label:'Start',val:V,bal:owed,eq:V-owed,int:0,cou:0,bc:0,cost:0,gain:0,net:0,paid:0,inv:inv0,cap:inv0,rentPaid:0,diff:V-owed-inv0}];
   for(let m=1;m<=N;m++){
     const it=bal*r, pm=Math.min(pay,bal+it);
-    bal-=pm-it; ci+=it; cc+=cm; cb+=bm; cp+=pm+cm+bm; inv=inv*(1+ir)+(pm+cm+bm-rm); rp+=rm;
+    bal-=pm-it; ci+=it; cc+=cm; cb+=bm; const rm=rm0*Math.pow(1+rig,Math.floor((m-1)/12)); cp+=pm+cm+bm; inv=inv*(1+ir)+(pm+cm+bm-rm); cap+=pm+cm+bm-rm; rp+=rm;
     if(m%step===0){
       const val=V*Math.pow(1+g,m/12), cost=ci+cc+cb, gain=val-V;
-      rows.push({p:m/step,label:hz===1?'Month '+m:'Year '+(m/12),val,bal,eq:val-bal,int:ci,cou:cc,bc:cb,cost,gain,net:gain-cost,paid:cp,inv,rentPaid:rp,diff:val-bal-inv});
+      rows.push({p:m/step,label:hz===1?'Month '+m:'Year '+(m/12),val,bal,eq:val-bal,int:ci,cou:cc,bc:cb,cost,gain,net:gain-cost,paid:cp,inv,cap,rentPaid:rp,diff:val-bal-inv});
     }
   }
   return {rows,pay};
@@ -120,16 +121,20 @@ function chart(rows,series){
 function renderRent(){
   const {rows}=calc(), e=rows[rows.length-1];
   $('rstats').innerHTML=[
+    ['Total equity – owning',fmt(e.eq),''],
+    ['Capital invested (renting)',fmt(e.cap),''],
+    ['Investment returns',fmt(e.inv-e.cap),'good'],
+    ['Total equity – renting',fmt(e.inv),'good'],
     ['Rent paid',fmt(e.rentPaid),'bad'],
-    ['Investment pot (renting)',fmt(e.inv),'good'],
-    ['Equity (owning)',fmt(e.eq),''],
+    
+    
     [e.diff>=0?'Owning ahead by':'Renting ahead by',fmt(Math.abs(e.diff)),'']
   ].map(a=>`<div class="stat"><span>${a[0]}</span><b class="${a[2]}">${a[1]}</b></div>`).join('');
   if(mode==='n'){
-    $('rout').innerHTML='<div class="card scroll"><table style="min-width:640px"><thead><tr><th>Period</th><th>Owning cash out</th><th>Rent paid</th><th>Monthly-diff invested (total)</th><th>Investment pot</th><th>Equity (owning)</th><th>Owning − Renting</th></tr></thead><tbody>'+
-    rows.map(r=>`<tr><td>${r.label}</td><td>${fmt(r.paid)}</td><td>${fmt(r.rentPaid)}</td><td>${fmt(r.paid-r.rentPaid)}</td><td>${fmt(r.inv)}</td><td>${fmt(r.eq)}</td><td class="${r.diff>=0?'good':'bad'}">${fmt(r.diff)}</td></tr>`).join('')+'</tbody></table></div>';
+    $('rout').innerHTML='<div class="card scroll"><table style="min-width:640px"><thead><tr><th>Period</th><th>Rent paid</th><th>Capital invested</th><th>Returns</th><th>Total equity – renting</th><th>Total equity – owning</th><th>Owning − Renting</th></tr></thead><tbody>'+
+    rows.map(r=>`<tr><td>${r.label}</td><td>${fmt(r.rentPaid)}</td><td>${fmt(r.cap)}</td><td>${fmt(r.inv-r.cap)}</td><td>${fmt(r.inv)}</td><td>${fmt(r.eq)}</td><td class="${r.diff>=0?'good':'bad'}">${fmt(r.diff)}</td></tr>`).join('')+'</tbody></table></div>';
   }else{
-    $('rout').innerHTML='<div class="card"><h2>Equity (owning) vs investment pot (renting)</h2>'+chart(rows,[{k:'eq',n:'Equity (owning)',c:'--c1'},{k:'inv',n:'Investment pot (renting)',c:'--c3'},{k:'diff',n:'Owning − Renting',c:'--c4'}])+'</div>';
+    $('rout').innerHTML='<div class="card"><h2>Total equity: owning vs renting</h2>'+chart(rows,[{k:'eq',n:'Total equity – owning',c:'--c1'},{k:'inv',n:'Total equity – renting',c:'--c3'},{k:'cap',n:'Capital invested (renting)',c:'--c2'},{k:'diff',n:'Owning − Renting',c:'--c4'}])+'</div>';
   }
 }
 function render(){renderRent();
@@ -152,7 +157,7 @@ function render(){renderRent();
     '<div class="card"><h2>Total costs vs value gain</h2>'+chart(rows,[{k:'cost',n:'Total holding costs',c:'--c2'},{k:'gain',n:'Value gain',c:'--c3'},{k:'net',n:'Net position',c:'--c1'},{k:'int',n:'Interest only',c:'--c4'}])+'</div>';
   }
 }
-const KEY='propertyCostVsValue.v1',FIELDS=['owed','rate','term','pay','val','gr','cr','crf','bc','bcf','hz','rent','rentf','iv','eqin'];
+const KEY='propertyCostVsValue.v1',FIELDS=['owed','rate','term','pay','val','gr','cr','crf','bc','bcf','hz','rent','rentf','iv','ri','eqin'];
 const DEF={};FIELDS.forEach(id=>{const el=$(id);DEF[id]=el.type==='checkbox'?el.checked:el.value});
 function setMode(m){mode=m;$('bn').classList.toggle('on',m==='n');$('bg').classList.toggle('on',m==='g')}
 function apply(d){FIELDS.forEach(id=>{if(!(id in d))return;const el=$(id);if(el.type==='checkbox')el.checked=!!d[id];else el.value=d[id]});setMode(d.mode==='g'?'g':'n')}
@@ -167,3 +172,4 @@ render();
 </script>
 </body>
 </html>
+
