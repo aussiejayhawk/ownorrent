@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en-AU">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Property Cost vs Value</title>
+<style>
+:root{--bg:#f6f7f9;--card:#fff;--tx:#14181f;--mut:#5b6573;--bd:#d9dee5;--ac:#0b5fd1;--c1:#0b5fd1;--c2:#d9480f;--c3:#2f9e44;--c4:#7048e8;--good:#1a7f37;--bad:#c92a2a;color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f1318;--card:#171c23;--tx:#e8ecf1;--mut:#9aa5b3;--bd:#2a323d;--ac:#5aa2ff;--c1:#5aa2ff;--c2:#ff8c5a;--c3:#5fd47a;--c4:#a78bfa;--good:#5fd47a;--bad:#ff7b7b;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0f1318;--card:#171c23;--tx:#e8ecf1;--mut:#9aa5b3;--bd:#2a323d;--ac:#5aa2ff;--c1:#5aa2ff;--c2:#ff8c5a;--c3:#5fd47a;--c4:#a78bfa;--good:#5fd47a;--bad:#ff7b7b;color-scheme:dark}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+main{max-width:980px;margin:0 auto;padding:16px}
+h1{font-size:1.4rem;margin:.2em 0 .1em}
+p.sub{color:var(--mut);margin:0 0 14px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:14px;margin-bottom:14px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+label{display:block;font-size:.8rem;color:var(--mut);margin-bottom:3px}
+input,select{width:100%;padding:8px 10px;border:1px solid var(--bd);border-radius:8px;background:var(--bg);color:var(--tx);font:inherit}
+.row{display:flex;gap:6px}.row input{flex:1.4}.row select{flex:1}
+h2{font-size:1rem;margin:0 0 10px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.stat{border:1px solid var(--bd);border-radius:10px;padding:10px}
+.stat span{display:block;font-size:.75rem;color:var(--mut)}
+.stat b{font-size:1.15rem}
+.good{color:var(--good)}.bad{color:var(--bad)}
+.bar{display:flex;gap:10px;flex-wrap:wrap;align-items:end;margin-bottom:14px}
+.bar>div{min-width:150px}
+.seg{display:inline-flex;border:1px solid var(--bd);border-radius:8px;overflow:hidden}
+.seg button{border:0;background:var(--card);color:var(--tx);padding:8px 16px;font:inherit;cursor:pointer}
+.seg button.on{background:var(--ac);color:#fff}
+.scroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%;min-width:760px;font-variant-numeric:tabular-nums}
+th,td{padding:7px 9px;text-align:right;border-bottom:1px solid var(--bd);white-space:nowrap}
+th:first-child,td:first-child{text-align:left}
+th{font-size:.75rem;color:var(--mut);font-weight:600}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:.8rem;color:var(--mut);margin:4px 0 8px}
+.legend i{display:inline-block;width:12px;height:3px;border-radius:2px;margin-right:5px;vertical-align:middle}
+svg{width:100%;height:auto;display:block}
+svg text{fill:var(--mut);font-size:11px}
+.note{font-size:.78rem;color:var(--mut)}
+</style>
+</head>
+<body>
+<main>
+<h1>Property: Costs vs Value</h1>
+<p class="sub">Enter your figures. All amounts in AUD. Updates live.</p>
+
+<div class="card"><div class="grid">
+<div><label>Mortgage owed ($)</label><input id="owed" type="number" value="500000" min="0"></div>
+<div><label>Interest rate (% p.a.)</label><input id="rate" type="number" value="6.2" step="0.01" min="0"></div>
+<div><label>Remaining loan term (years)</label><input id="term" type="number" value="25" min="1"></div>
+<div><label>Monthly repayment ($) – blank = calculate</label><input id="pay" type="number" placeholder="auto" min="0"></div>
+<div><label>Property value now ($)</label><input id="val" type="number" value="750000" min="0"></div>
+<div><label>Value growth (% p.a.)</label><input id="gr" type="number" value="4" step="0.1"></div>
+<div><label>Council rates ($)</label><div class="row"><input id="cr" type="number" value="1100" min="0"><select id="crf"><option value="12">monthly</option><option value="4">quarterly</option><option value="2" selected>half-yearly</option><option value="1">yearly</option></select></div></div>
+<div><label>Body corporate ($)</label><div class="row"><input id="bc" type="number" value="1200" min="0"><select id="bcf"><option value="12">monthly</option><option value="4" selected>quarterly</option><option value="2">half-yearly</option><option value="1">yearly</option></select></div></div>
+</div></div>
+
+<div class="card"><h2>Versus renting</h2><div class="grid">
+<div><label>Rent ($)</label><div class="row"><input id="rent" type="number" value="650" min="0"><select id="rentf"><option value="52" selected>weekly</option><option value="26">fortnightly</option><option value="12">monthly</option></select></div></div>
+<div><label>Investment return (% p.a.)</label><input id="iv" type="number" value="7" step="0.1"></div>
+<div><label>&nbsp;</label><label style="display:flex;gap:8px;align-items:center;color:var(--tx)"><input id="eqin" type="checkbox" style="width:auto">Also invest current equity</label></div>
+</div></div>
+
+<div class="bar">
+<div><label>Period</label><select id="hz"><option value="1" selected>1 year (monthly)</option><option value="5">5 years</option><option value="10">10 years</option><option value="20">20 years</option><option value="30">30 years</option></select></div>
+<div><label>Display</label><div class="seg"><button id="bn" class="on">Numbers</button><button id="bg">Graph</button></div></div>
+<div><label>&nbsp;</label><div class="seg"><button id="clr">Clear saved data</button></div></div>
+</div>
+
+<div class="card"><div class="stats" id="stats"></div></div>
+<div id="out"></div>
+<div class="card"><h2>Versus renting: invest the difference</h2><div class="stats" id="rstats"></div></div>
+<div id="rout"></div>
+<p class="note">Holding costs = interest + council rates + body corporate. Principal repaid is equity, not a cost. Growth is compounded annually; rates and fees held flat. Renting: each month, owning cash out (repayment + council + body corp) minus rent is invested at your return rate, compounded monthly. If rent is higher, the pot draws down. Investment returns are pre-tax. Inputs are saved in this browser only (localStorage), never sent anywhere. Estimate only, not financial advice.</p>
+</main>
+<script>
+const $=id=>document.getElementById(id);
+const fmt=n=>new Intl.NumberFormat('en-AU',{style:'currency',currency:'AUD',maximumFractionDigits:0}).format(n);
+const short=n=>Math.abs(n)>=1e6?(n/1e6).toFixed(2)+'M':Math.abs(n)>=1e3?(n/1e3).toFixed(0)+'k':n.toFixed(0);
+let mode='n';
+function calc(){
+  const owed=+$('owed').value||0, r=(+$('rate').value||0)/100/12, n=Math.max(1,Math.round((+$('term').value||1)*12));
+  let pay=+$('pay').value||0;
+  if(!pay) pay=r===0?owed/n:owed*r/(1-Math.pow(1+r,-n));
+  const V=+$('val').value||0, g=(+$('gr').value||0)/100;
+  const cm=(+$('cr').value||0)*(+$('crf').value)/12, bm=(+$('bc').value||0)*(+$('bcf').value)/12;
+  const hz=+$('hz').value, N=hz*12, step=hz===1?1:12;
+  const rm=(+$('rent').value||0)*(+$('rentf').value)/12, ir=(+$('iv').value||0)/100/12;
+  let bal=owed,ci=0,cc=0,cb=0,cp=0,rp=0,inv=$('eqin').checked?Math.max(0,V-owed):0; const inv0=inv;
+  const rows=[{p:0,label:'Start',val:V,bal:owed,eq:V-owed,int:0,cou:0,bc:0,cost:0,gain:0,net:0,paid:0,inv:inv0,rentPaid:0,diff:V-owed-inv0}];
+  for(let m=1;m<=N;m++){
+    const it=bal*r, pm=Math.min(pay,bal+it);
+    bal-=pm-it; ci+=it; cc+=cm; cb+=bm; cp+=pm+cm+bm; inv=inv*(1+ir)+(pm+cm+bm-rm); rp+=rm;
+    if(m%step===0){
+      const val=V*Math.pow(1+g,m/12), cost=ci+cc+cb, gain=val-V;
+      rows.push({p:m/step,label:hz===1?'Month '+m:'Year '+(m/12),val,bal,eq:val-bal,int:ci,cou:cc,bc:cb,cost,gain,net:gain-cost,paid:cp,inv,rentPaid:rp,diff:val-bal-inv});
+    }
+  }
+  return {rows,pay};
+}
+function chart(rows,series){
+  const W=700,H=280,L=56,R=12,T=10,B=28,w=W-L-R,h=H-T-B;
+  let all=series.flatMap(s=>rows.map(x=>x[s.k])),mn=Math.min(0,...all),mx=Math.max(...all);
+  if(mx===mn)mx=mn+1;
+  const X=i=>L+(rows.length<2?0:i/(rows.length-1)*w), Y=v=>T+h-(v-mn)/(mx-mn)*h;
+  let s=`<svg viewBox="0 0 ${W} ${H}" role="img">`;
+  for(let i=0;i<=4;i++){const v=mn+(mx-mn)*i/4,y=Y(v);s+=`<line x1="${L}" x2="${W-R}" y1="${y}" y2="${y}" style="stroke:var(--bd)"/><text x="${L-6}" y="${y+4}" text-anchor="end">$${short(v)}</text>`;}
+  const every=Math.ceil(rows.length/8);
+  rows.forEach((r,i)=>{if(i%every===0||i===rows.length-1)s+=`<text x="${X(i)}" y="${H-8}" text-anchor="middle">${r.label.replace('Month ','M').replace('Year ','Y')}</text>`;});
+  series.forEach(se=>{
+    const d=rows.map((r,i)=>(i?'L':'M')+X(i).toFixed(1)+' '+Y(r[se.k]).toFixed(1)).join(' ');
+    s+=`<path d="${d}" fill="none" style="stroke:var(${se.c})" stroke-width="2.5" stroke-linejoin="round"/>`;
+    rows.forEach((r,i)=>{if(rows.length<=31)s+=`<circle cx="${X(i)}" cy="${Y(r[se.k])}" r="2.5" style="fill:var(${se.c})"><title>${se.n} – ${r.label}: ${fmt(r[se.k])}</title></circle>`;});
+  });
+  return s+'</svg>'+'<div class="legend">'+series.map(se=>`<span><i style="background:var(${se.c})"></i>${se.n}</span>`).join('')+'</div>';
+}
+function renderRent(){
+  const {rows}=calc(), e=rows[rows.length-1];
+  $('rstats').innerHTML=[
+    ['Rent paid',fmt(e.rentPaid),'bad'],
+    ['Investment pot (renting)',fmt(e.inv),'good'],
+    ['Equity (owning)',fmt(e.eq),''],
+    [e.diff>=0?'Owning ahead by':'Renting ahead by',fmt(Math.abs(e.diff)),'']
+  ].map(a=>`<div class="stat"><span>${a[0]}</span><b class="${a[2]}">${a[1]}</b></div>`).join('');
+  if(mode==='n'){
+    $('rout').innerHTML='<div class="card scroll"><table style="min-width:640px"><thead><tr><th>Period</th><th>Owning cash out</th><th>Rent paid</th><th>Monthly-diff invested (total)</th><th>Investment pot</th><th>Equity (owning)</th><th>Owning − Renting</th></tr></thead><tbody>'+
+    rows.map(r=>`<tr><td>${r.label}</td><td>${fmt(r.paid)}</td><td>${fmt(r.rentPaid)}</td><td>${fmt(r.paid-r.rentPaid)}</td><td>${fmt(r.inv)}</td><td>${fmt(r.eq)}</td><td class="${r.diff>=0?'good':'bad'}">${fmt(r.diff)}</td></tr>`).join('')+'</tbody></table></div>';
+  }else{
+    $('rout').innerHTML='<div class="card"><h2>Equity (owning) vs investment pot (renting)</h2>'+chart(rows,[{k:'eq',n:'Equity (owning)',c:'--c1'},{k:'inv',n:'Investment pot (renting)',c:'--c3'},{k:'diff',n:'Owning − Renting',c:'--c4'}])+'</div>';
+  }
+}
+function render(){renderRent();
+  const {rows,pay}=calc(), e=rows[rows.length-1];
+  const cls=v=>v>=0?'good':'bad';
+  $('stats').innerHTML=[
+    ['Monthly repayment',fmt(pay),''],
+    ['Property value',fmt(e.val),''],
+    ['Value gain',fmt(e.gain),'good'],
+    ['Total holding costs',fmt(e.cost),'bad'],
+    ['Net (gain − costs)',fmt(e.net),cls(e.net)],
+    ['Equity',fmt(e.eq),''],
+    ['Mortgage balance',fmt(e.bal),'']
+  ].map(a=>`<div class="stat"><span>${a[0]}</span><b class="${a[2]}">${a[1]}</b></div>`).join('');
+  if(mode==='n'){
+    $('out').innerHTML='<div class="card scroll"><table><thead><tr><th>Period</th><th>Property value</th><th>Mortgage</th><th>Equity</th><th>Interest</th><th>Council</th><th>Body corp</th><th>Total costs</th><th>Value gain</th><th>Net</th></tr></thead><tbody>'+
+    rows.map(r=>`<tr><td>${r.label}</td><td>${fmt(r.val)}</td><td>${fmt(r.bal)}</td><td>${fmt(r.eq)}</td><td>${fmt(r.int)}</td><td>${fmt(r.cou)}</td><td>${fmt(r.bc)}</td><td>${fmt(r.cost)}</td><td>${fmt(r.gain)}</td><td class="${cls(r.net)}">${fmt(r.net)}</td></tr>`).join('')+'</tbody></table></div>';
+  }else{
+    $('out').innerHTML='<div class="card"><h2>Property value, mortgage and equity</h2>'+chart(rows,[{k:'val',n:'Property value',c:'--c1'},{k:'bal',n:'Mortgage balance',c:'--c2'},{k:'eq',n:'Equity',c:'--c3'}])+'</div>'+
+    '<div class="card"><h2>Total costs vs value gain</h2>'+chart(rows,[{k:'cost',n:'Total holding costs',c:'--c2'},{k:'gain',n:'Value gain',c:'--c3'},{k:'net',n:'Net position',c:'--c1'},{k:'int',n:'Interest only',c:'--c4'}])+'</div>';
+  }
+}
+const KEY='propertyCostVsValue.v1',FIELDS=['owed','rate','term','pay','val','gr','cr','crf','bc','bcf','hz','rent','rentf','iv','eqin'];
+const DEF={};FIELDS.forEach(id=>{const el=$(id);DEF[id]=el.type==='checkbox'?el.checked:el.value});
+function setMode(m){mode=m;$('bn').classList.toggle('on',m==='n');$('bg').classList.toggle('on',m==='g')}
+function apply(d){FIELDS.forEach(id=>{if(!(id in d))return;const el=$(id);if(el.type==='checkbox')el.checked=!!d[id];else el.value=d[id]});setMode(d.mode==='g'?'g':'n')}
+function save(){try{const d={mode};FIELDS.forEach(id=>{const el=$(id);d[id]=el.type==='checkbox'?el.checked:el.value});localStorage.setItem(KEY,JSON.stringify(d))}catch(e){}}
+function load(){try{const d=JSON.parse(localStorage.getItem(KEY)||'null');if(d&&typeof d==='object')apply(d)}catch(e){}}
+load();
+document.querySelectorAll('input,select').forEach(el=>el.addEventListener('input',()=>{save();render()}));
+$('clr').onclick=()=>{try{localStorage.removeItem(KEY)}catch(e){}apply(Object.assign({mode:'n'},DEF));render()};
+$('bn').onclick=()=>{mode='n';save();$('bn').classList.add('on');$('bg').classList.remove('on');render()};
+$('bg').onclick=()=>{mode='g';save();$('bg').classList.add('on');$('bn').classList.remove('on');render()};
+render();
+</script>
+</body>
+</html>
